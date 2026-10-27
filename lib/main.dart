@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutterwebapp/screen/webview_screen.dart';
 
 // Website to be loaded inside the app
-const websiteUrl = 'https://roozbehzarei.com/';
+const websiteUrl = 'https://flutter.dev';
 
 void main() {
 // Ensure Flutter widgets are prepared
