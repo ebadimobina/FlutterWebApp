@@ -6,8 +6,8 @@ class WebViewerController extends GetxController {
   final String url;
   late final WebViewController webViewController;
 
-  Rx loadingPercentage = Rx(0);
-  RxBool hasInternetConnection = RxBool(false);
+  final RxInt loadingPercentage = 0.obs;
+  final RxBool hasInternetConnection = true.obs;
 
   WebViewerController(this.url);
 
@@ -21,20 +21,40 @@ class WebViewerController extends GetxController {
     webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
-        // Allow only internal navigation
         onNavigationRequest: (request) async {
-          if (request.url.startsWith(url)) {
-            return NavigationDecision.navigate;
+          final targetUri = Uri.tryParse(request.url);
+          final baseUri = Uri.tryParse(url);
+
+          if (targetUri != null && baseUri != null) {
+            final targetHost =
+                targetUri.host.toLowerCase().replaceFirst(RegExp(r'^www\.'), '');
+            final baseHost =
+                baseUri.host.toLowerCase().replaceFirst(RegExp(r'^www\.'), '');
+
+            // Allow navigation if target host matches or is a subdomain of base host
+            if (targetHost.isNotEmpty &&
+                (targetHost == baseHost || targetHost.endsWith('.$baseHost'))) {
+              return NavigationDecision.navigate;
+            }
           }
-          await launchExternalUrl(request.url); // Open external in browser
+
+          // Open external or special scheme links in external apps
+          await launchExternalUrl(request.url);
           return NavigationDecision.prevent;
         },
+        onPageStarted: (_) => hasInternetConnection.value = true,
         onProgress: (progress) => loadingPercentage.value = progress,
-        onPageFinished: (_) => hasInternetConnection.value = true,
-        // Detect network or DNS failure
+        onPageFinished: (_) {
+          hasInternetConnection.value = true;
+          loadingPercentage.value = 100;
+        },
+        // Detect network or DNS failure for the main frame
         onWebResourceError: (error) {
-          if (error.errorType == WebResourceErrorType.hostLookup ||
-              error.errorType == WebResourceErrorType.connect) {
+          final isMainFrame = error.isForMainFrame ?? true;
+          if (isMainFrame &&
+              (error.errorType == WebResourceErrorType.hostLookup ||
+                  error.errorType == WebResourceErrorType.connect ||
+                  error.errorType == WebResourceErrorType.timeout)) {
             hasInternetConnection.value = false;
             loadingPercentage.value = 0;
           }
@@ -47,15 +67,21 @@ class WebViewerController extends GetxController {
   Future<void> retryConnection() async {
     hasInternetConnection.value = true;
     loadingPercentage.value = 0;
-    webViewController.reload();
+    await webViewController.reload();
   }
 
-  // Launch external links via default browser
+  // Launch external links via default browser / external app
   Future<void> launchExternalUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      Get.snackbar('Error', 'Unable to handle your request');
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
     }
+    Get.snackbar('Error', 'Unable to handle this request');
   }
 
   // Navigation helpers for back functionality

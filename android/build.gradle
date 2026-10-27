@@ -2,6 +2,19 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://maven.aliyun.com/repository/google" }
+        maven { url "https://maven.aliyun.com/repository/public" }
+    }
+}
+
+subprojects {
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+            maven { url "https://maven.aliyun.com/repository/google" }
+            maven { url "https://maven.aliyun.com/repository/public" }
+        }
     }
 }
 
