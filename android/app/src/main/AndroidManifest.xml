@@ -11,6 +11,11 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="tel" />
         </intent>
+        <!-- If your app checks for mail support -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
         <!-- If your application checks for inAppBrowserView launch mode support -->
         <intent>
             <action android:name="android.support.customtabs.action.CustomTabsService" />
@@ -61,5 +66,7 @@
     </queries>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    
+    <!-- Permissions for file uploads and camera access in web forms -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 </manifest>
